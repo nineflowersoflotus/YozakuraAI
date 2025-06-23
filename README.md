@@ -1,5 +1,4 @@
 # YozakuraAI
-Koi-Koi Hanafuda linear policy AI model 
 
 ![image](https://github.com/user-attachments/assets/44eeb5b5-996b-4415-909e-1b9df440ac2f)
 
