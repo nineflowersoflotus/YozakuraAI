@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hanafuda Koi‑Koi</title>
+  <style>
+   :root {
+  --bg-color: #111;
+  --bg-image-overlay: rgba(0, 0, 0, 0.7);
+  --section-bg: rgba(0, 0, 0, 0.4);
+  --header-bg: rgba(0, 0, 0, 0.7);
+  --modal-bg: #222;
+  --accent: #800020;
+  --accent-dark: #400010;
+  --text-color: #fff;
+  --highlight-color: #ffd700;
+  --help-fill: #006400;
+  --border-color: rgba(255, 255, 255, 0.5);
+  --radius: 8px;
+  --gap: 1rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: url('background.png') center/cover no-repeat fixed, var(--bg-color);
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  color: var(--text-color);
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: var(--header-bg);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--gap) * 0.75);
+  padding: calc(var(--gap) * 0.5) var(--gap);
+  z-index: 100;
+}
+
+#header div {
+  font-size: 1.1rem;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "enemyHand enemyHand enemyHand"
+    "ai center captures";
+  gap: var(--gap);
+  justify-items: center;
+  align-items: start;
+  padding: calc(var(--gap) * 6) var(--gap) var(--gap);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section {
+  background: var(--section-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--gap);
+}
+
+.section h2 {
+  margin: 0 0 calc(var(--gap) * 0.5);
+  font-size: 1.25rem;
+  display: inline-block;
+  background: var(--header-bg);
+  padding: 0.5rem 1rem;
+  border-radius: calc(var(--radius) / 2);
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.card {
+  width: 80px;
+  height: 110px;
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+}
+
+.card.highlight {
+  border: 3px solid var(--highlight-color);
+  box-shadow: 0 0 12px var(--highlight-color);
+}
+
+.card-back {
+  width: 30px;
+  height: 41px;
+  background: var(--accent);
+  border: 2px solid var(--accent-dark);
+  border-radius: 4px;
+}
+
+#aiSection .card,
+#capturesSection .card {
+  width: 60px;
+  height: 82px;
+}
+
+#center {
+  grid-area: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+}
+
+#message {
+  grid-column: 1 / span 3;
+  text-align: center;
+  font-size: 1.2rem;
+  margin-top: var(--gap);
+}
+
+.restart-container {
+  grid-column: 1 / span 3;
+  text-align: center;
+  margin-top: calc(var(--gap) * 0.5);
+}
+
+.restart-container button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.restart-container button:hover {
+  background: var(--accent-dark);
+}
+
+#modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-image-overlay);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+#modal {
+  background: var(--modal-bg);
+  padding: calc(var(--gap) * 1.5);
+  border-radius: var(--radius);
+  text-align: center;
+  max-width: 90%;
+  width: 400px;
+}
+
+#modal button {
+  margin: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#modal button:hover {
+  background: var(--accent-dark);
+}
+
+.help-bar-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.help-card-label {
+  flex: 0 0 120px;
+  font-size: 0.9rem;
+}
+
+.help-bar {
+  flex: 1;
+  height: 14px;
+  background: var(--accent);
+  border: 1px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.help-fill {
+  height: 100%;
+  width: 0;
+  background: var(--help-fill);
+  transition: width 0.3s ease;
+}
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div id="roundLabel">Round: <span id="roundDisplay">1</span>/12</div>
+    <div id="scoreLabel">Pontuação — Você: <span id="totalPlayer">0</span> | IA: <span id="totalAI">0</span></div>
+  </div>
+
+  <div id="board">
+    <!-- Enemy hand -->
+    <div id="enemyHandSection" class="section" style="grid-area: enemyHand;">
+      <h2>Mão da IA</h2>
+      <div id="enemyHand" class="cards"></div>
+    </div>
+
+    <!-- AI captures + Yaku -->
+    <div id="aiSection" class="section" style="grid-area: ai; justify-self:start;">
+      <h2>Capturas da IA</h2>
+      <div id="ai-hikari" class="cards-group"><h3>Hikari</h3><div class="cards" id="ai-hikari-cards"></div></div>
+      <div id="ai-tane" class="cards-group"><h3>Tane</h3><div class="cards" id="ai-tane-cards"></div></div>
+      <div id="ai-tanzaku" class="cards-group"><h3>Tanzaku</h3><div class="cards" id="ai-tanzaku-cards"></div></div>
+      <div id="ai-kasu" class="cards-group"><h3>Kasu</h3><div class="cards" id="ai-kasu-cards"></div></div>
+      <div><strong>Yaku:</strong> <span id="aiYakuList">None</span></div>
+    </div>
+
+    <!-- Center: Table + Your Hand -->
+    <div id="center">
+      <div id="tableSection" class="section">
+        <h2>Mesa</h2>
+        <div id="table" class="cards"></div>
+      </div>
+      <div id="handSection" class="section">
+        <h2>Sua mão</h2>
+        <div id="hand" class="cards"></div>
+          <!-- under your cards, add: -->
+  <button id="aiDiscardHelpBtn" style="margin-top:10px;">IA Helper</button>
+  <div id="aiDiscardHelpPanel" style="display:none; margin-top:8px;"></div>
+
+      </div>
+    </div>
+
+    <!-- Your captures + Yaku -->
+    <div id="capturesSection" class="section" style="grid-area: captures; justify-self:end;">
+      <h2>Suas Capturas</h2>
+      <div id="your-hikari" class="cards-group"><h3>Hikari</h3><div class="cards" id="your-hikari-cards"></div></div>
+      <div id="your-tane" class="cards-group"><h3>Tane</h3><div class="cards" id="your-tane-cards"></div></div>
+      <div id="your-tanzaku" class="cards-group"><h3>Tanzaku</h3><div class="cards" id="your-tanzaku-cards"></div></div>
+      <div id="your-kasu" class="cards-group"><h3>Kasu</h3><div class="cards" id="your-kasu-cards"></div></div>
+      <div><strong>Yaku:</strong> <span id="yourYakuList">None</span></div>
+    </div>
+
+    <div id="message">Seu turno. Clique em uma carta para jogar.</div>
+    <div class="restart-container">
+      <button id="restartBtn">Reiniciar</button>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalOverlay">
+    <div id="modal">
+      <p>You made a Yaku! Koi‑Koi?</p>
+      <button id="koiBtn">Yes!</button>
+      <button id="stopBtn">Stop</button>
+      <!-- inside <div id="modal">…</div> -->
+      <button id="aiHelpBtn" style="margin-top:10px;">AI Help (Koi‑Koi)</button>
+      <div id="aiHelpPanel" style="display:none; margin-top:10px;">
+              <div class="help-bar-container">
+        <span class="help-card-label">Stop: <span id="helpStopPct">0</span>%</span>
+        <div class="help-bar">
+          <div id="helpFillStop" class="help-fill"></div>
+        </div>
+      </div>
+      <div class="help-bar-container">
+        <span class="help-card-label">Yes: <span id="helpKoiPct">0</span>%</span>
+        <div class="help-bar">
+          <div id="helpFillKoi" class="help-fill"></div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ——— 1) Load trained AI weights ———
+  let policyWeights = null;
+  fetch('policy_weights.json')
+    .then(r => r.json())
+    .then(w => {
+      policyWeights = w;         // { discard: [...], koikoi: [...] }
+      initDeck(); deal();        // start the game only after weights load
+    });
+
+  // ——— 2) LinearPolicy core in JS ———
+  function dot(a,b){ return a.reduce((s,v,i)=> s+v*b[i], 0); }
+  function actionProbs(w, feats){
+    const scores = feats.map(f=> dot(w,f));
+    const m = Math.max(...scores);
+    const exps = scores.map(s=> Math.exp(s-m));
+    const Z = exps.reduce((a,b)=>a+b,0);
+    return exps.map(e=> e/Z);
+  }
+  function chooseAction(w, feats){
+    const probs = actionProbs(w,feats);
+    let r=Math.random(), cum=0;
+    for(let i=0;i<probs.length;i++){
+      cum+=probs[i];
+      if(r<cum) return i;
+    }
+    return probs.length-1;
+  }
+
+  // ——— 3) Game data & metadata ———
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const typeMap = {
+    January:   ['bright','ribbon','junk','junk'],
+    February:  ['tane','ribbon','junk','junk'],
+    March:     ['bright','ribbon','junk','junk'],
+    April:     ['tane','ribbon','junk','junk'],
+    May:       ['tane','ribbon','junk','junk'],
+    June:      ['tane','ribbon','junk','junk'],
+    July:      ['tane','ribbon','junk','junk'],
+    August:    ['bright','tane','junk','junk'],
+    September: ['tane','ribbon','junk','junk'],
+    October:   ['tane','ribbon','junk','junk'],
+    November:  ['bright','tane','ribbon','junk'],
+    December:  ['bright','junk','junk','junk']
+  };
+  const cardNames = {
+    January:   ['Crane','Red Poetry','Pine Chaff 1','Pine Chaff 2'],
+    February:  ['Bush Warbler','Red Poetry','Plum Chaff 1','Plum Chaff 2'],
+    March:     ['Curtain','Red Poetry','Cherry Chaff 1','Cherry Chaff 2'],
+    April:     ['Cuckoo','Purple Ribbon','Wisteria Chaff 1','Wisteria Chaff 2'],
+    May:       ['Eight‑Plank Bridge','Blue Ribbon','Iris Chaff 1','Iris Chaff 2'],
+    June:      ['Butterflies','Blue Ribbon','Peony Chaff 1','Peony Chaff 2'],
+    July:      ['Boar','Red Ribbon','Bush Clover Chaff 1','Bush Clover Chaff 2'],
+    August:    ['Geese','Red Ribbon','Pampas Chaff 1','Pampas Chaff 2'],
+    September: ['Sake Cup','Blue Ribbon','Chrysanthemum Chaff 1','Chrysanthemum Chaff 2'],
+    October:   ['Moon','Blue Ribbon','Maple Chaff 1','Maple Chaff 2'],
+    November:  ['Rainman','Swallow','Purple Ribbon','Willow Chaff'],
+    December:  ['Phoenix','Paulownia Chaff 1','Paulownia Chaff 2','Paulownia Chaff 3']
+  };
+  const types = ['bright','tane','ribbon','junk'];
+
+  let deck = [], tableCards = [], playerHand = [], aiHand = [], playerCaptures = [], aiCaptures = [];
+  let pendingCard = null, round=1, totalPlayer=0, totalAI=0, lastYakuScore=0, aiKoikoi=false;
+
+  // ——— 4) Feature‐extraction helpers ———
+  function countBy(arr, fn){
+    return arr.reduce((acc,x)=>{ const k=fn(x); acc[k]=(acc[k]||0)+1; return acc; }, {});
+  }
+
+  function isDangerousDiscard(card, table, oppoCaps){
+    const ribbons1 = ['Red Poetry'], ribbons2=['Blue Ribbon'], ribbons3=['Purple Ribbon'];
+    function yakuDanger(names){
+      return table.filter(c=>names.includes(c.name)).length
+           + oppoCaps.filter(c=>names.includes(c.name)).length;
+    }
+    if(ribbons1.includes(card.name) && yakuDanger(ribbons1)===2) return 1;
+    if(ribbons2.includes(card.name) && yakuDanger(ribbons2)===2) return 1;
+    if(ribbons3.includes(card.name) && yakuDanger(ribbons3)===2) return 1;
+    const nAnimalCaps = oppoCaps.filter(c=>c.kind==='tane').length;
+    if(card.kind==='tane' && nAnimalCaps===4) return 1;
+    const nBrightCaps = oppoCaps.filter(c=>c.kind==='bright').length;
+    if(card.kind==='bright' && nBrightCaps>=2) return 1;
+    const nJunkCaps = oppoCaps.filter(c=>c.kind==='junk').length;
+    if(card.kind==='junk' && nJunkCaps===9) return 1;
+    return 0;
+  }
+
+  function oppoYakuPotential(hand, table, caps){
+    // returns [min_to_yaku, max_yaku_value]
+    const cnt = countBy(hand.concat(caps), c=>c.kind);
+    let minTo=4, maxVal=0;
+    // bright
+    minTo = Math.min(minTo, Math.max(3 - (cnt['bright']||0),0));
+    // animals
+    minTo = Math.min(minTo, Math.max(5 - (cnt['tane']||0),0));
+    // ribbons
+    minTo = Math.min(minTo, Math.max(5 - (cnt['ribbon']||0),0));
+    // junk
+    minTo = Math.min(minTo, Math.max(10-(cnt['junk']||0),0));
+    // estimate maxVal by pretend they finish each yaku:
+    maxVal = Math.max(
+      cnt['bright']>=5 ? 10 : cnt['bright']>=4 ? 8 : cnt['bright']>=3 ? 5 : 0,
+      cnt['tane']>=5 ? cnt['tane']-4 : 0,
+      cnt['ribbon']>=5 ? cnt['ribbon']-4 : 0,
+      cnt['junk']>=10 ? cnt['junk']-9 : 0
+    );
+    return [minTo, maxVal];
+  }
+
+  function detectYaku(caps){
+    const cnt = countBy(caps, c=>c.kind);
+    const names = new Set(caps.map(c=>c.name));
+    const y = {};
+    // brights
+    const brightList=['Crane','Curtain','Moon','Rainman','Phoenix'];
+    const nB = brightList.filter(n=>names.has(n)).length;
+    if(nB===5)       y['Goko']=10;
+    else if(nB===4)  y[names.has('Rainman')?'Ame‑Shiko':'Shiko'] = names.has('Rainman')?7:8;
+    else if(nB===3)  y['Sanko']=5;
+    // specific combos
+    if(names.has('Curtain') && names.has('Sake Cup')) y['Hanami‑zake']=5;
+    if(names.has('Moon')    && names.has('Sake Cup')) y['Tsukimi‑zake']=5;
+    if(['Boar','Butterflies','Geese'].every(n=>names.has(n))) y['Ino‑Shika‑Chō']=5;
+    // ribbons
+    const red = caps.filter(c=>c.name==='Red Poetry').length;
+    const blu = caps.filter(c=>c.name==='Blue Ribbon').length;
+    if(red===3 && blu===3) y['Akatan‑Aotan']=10;
+    else {
+      if(red===3) y['Akatan']=5;
+      if(blu===3) y['Aotan']=5;
+    }
+    // counts
+    if((cnt['tane']||0)>=5)   y['Tane']    = cnt['tane']-4;
+    if((cnt['ribbon']||0)>=5) y['Tanzaku'] = cnt['ribbon']-4;
+    if((cnt['junk']||0)>=10)  y['Kasu']    = cnt['junk']-9;
+    return y;
+  }
+
+  // ——— 5) Feature extraction ———
+  function extractFeaturesDiscard(hand, table, caps, oppoCaps, remainCounts, matchScore, roundNum){
+    const feats = [], totRemain = Object.values(remainCounts).reduce((a,b)=>a+b,0)+1e-6;
+    const normMatch = Math.max(-50,Math.min(50,matchScore))/10, normRound=roundNum/12;
+    hand.forEach(c=>{
+      feats.push([
+        c.kind==='bright'?1:0,
+        c.kind==='tane'?1:0,
+        c.kind==='ribbon'?1:0,
+        c.kind==='junk'?1:0,
+        table.filter(t=>t.month===c.month).length,
+        (remainCounts[c.name]||0)/totRemain,
+        normMatch,
+        normRound,
+        isDangerousDiscard(c, table, oppoCaps)
+      ]);
+    });
+    return feats;
+  }
+
+  function extractFeaturesKoikoi(caps, table, hand, deck, matchScore, roundNum, oppoHand, oppoCaps) {
+  const normMatch = Math.max(-50, Math.min(50, matchScore)) / 10;
+  const normRound = roundNum / 12;
+  const [minTo, maxVal] = oppoYakuPotential(oppoHand, table, oppoCaps);
+  const f = [
+    // your existing features...
+    Object.values(detectYaku(caps)).reduce((a,b)=>a+b,0),
+    hand.length,
+    table.length,
+    deck.length,
+    normMatch,
+    normRound,
+    Math.min(1, minTo/4),
+    Math.min(1, maxVal/10)
+  ];
+  return f;
+}
+
+  // ——— 6) Utility & start ———
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }}
+  function remainCounts(){
+    const all = deck.concat(tableCards, playerHand, aiHand, playerCaptures, aiCaptures);
+    const cnt = {};
+    all.forEach(c=> cnt[c.name]=(cnt[c.name]||0)+1 );
+    return cnt;
+  }
+  function scoreDiff(){ return totalPlayer - totalAI; }
+  function didMakeYaku(caps){ return Object.keys(detectYaku(caps)).length>0; }
+
+  // ——— 7) Game setup & flow ———
+  function initDeck(){
+    deck = [];
+    monthNames.forEach(m=>{
+      typeMap[m].forEach((k,i)=>{
+        deck.push({
+          month: m, kind: k,
+          name: cardNames[m][i],
+          img: `cards/${m}${i+1}.jpg`
+        });
+      });
+    });
+    shuffle(deck);
+  }
+  function deal(){
+    tableCards = deck.splice(0,8);
+    playerHand = deck.splice(0,8);
+    aiHand     = deck.splice(0,8);
+    playerCaptures=[]; aiCaptures=[];
+    render();
+  }
+
+  function renderEnemy(){
+    const cont = document.getElementById('enemyHand');
+    cont.innerHTML = '';
+    aiHand.forEach(_=>{ const d=document.createElement('div'); d.className='card-back'; cont.appendChild(d); });
+  }
+  function renderSection(id, arr, cb){
+    const cont=document.getElementById(id); cont.innerHTML='';
+    arr.forEach((c,i)=>{
+      const d=document.createElement('div');
+      d.className='card'; d.style.backgroundImage=`url('${c.img}')`;
+      if(cb) d.addEventListener('click',()=>cb(i));
+      cont.appendChild(d);
+    });
+  }
+  function renderTypeGroups(pref, caps){
+    ['hikari','tane','tanzaku','kasu'].forEach(kind=>{
+      const cont=document.getElementById(`${pref}-${kind}-cards`);
+      if(!cont) return;
+      cont.innerHTML = '';
+      caps.filter(c=>{
+        if(kind==='hikari') return c.kind==='bright';
+        if(kind==='tane')   return c.kind==='tane';
+        if(kind==='tanzaku')return c.kind==='ribbon';
+        return c.kind==='junk';
+      }).forEach(c=>{
+        const d=document.createElement('div');
+        d.className='card'; d.style.backgroundImage=`url('${c.img}')`;
+        cont.appendChild(d);
+      });
+    });
+  }
+  function showMessage(msg){ document.getElementById('message').textContent = msg; }
+  function showModal(){ document.getElementById('modalOverlay').style.display='flex';  document.getElementById('aiDiscardHelpBtn').style.display = 'none'; document.getElementById('aiDiscardHelpPanel').style.display = 'none'; document.getElementById('aiHelpBtn').style.display = 'inline';}
+  function hideModal(){ document.getElementById('modalOverlay').style.display='none'; document.getElementById('aiDiscardHelpBtn').style.display = 'inline'; document.getElementById('aiDiscardHelpPanel').style.display = 'none'; document.getElementById('aiHelpBtn').style.display = 'none';
+document.getElementById('aiHelpPanel').style.display = 'none';
+document.getElementById('aiDiscardHelpBtn').style.display = 'inline';document.getElementById('aiHelpPanel').style.display = 'none';
+}
+
+  function render(){
+    document.getElementById('roundDisplay').textContent = round;
+    document.getElementById('totalPlayer').textContent  = totalPlayer;
+    document.getElementById('totalAI').textContent      = totalAI;
+
+    renderEnemy();
+    renderTable();
+    renderSection('hand', playerHand, playCard);
+    renderTypeGroups('ai', aiCaptures);
+    renderTypeGroups('your', playerCaptures);
+    document.getElementById('aiYakuList').textContent   = Object.entries(detectYaku(aiCaptures)).map(([n,p])=>`${n}: ${p}`).join(', ') || 'None';
+    document.getElementById('yourYakuList').textContent = Object.entries(detectYaku(playerCaptures)).map(([n,p])=>`${n}: ${p}`).join(', ') || 'None';
+    if(!pendingCard) showMessage('Seu turno. Clique em uma carta para jogar.');
+
+    if(!pendingCard && (playerHand.length===0 || deck.length===0)) endRound();
+  }
+
+  function renderTable(){
+    const cont=document.getElementById('table'); cont.innerHTML='';
+    tableCards.forEach((c,i)=>{
+      const d=document.createElement('div');
+      d.className='card';
+      d.style.backgroundImage=`url('${c.img}')`;
+      if(pendingCard && c.month===pendingCard.month){
+        d.classList.add('highlight');
+        d.addEventListener('click',()=>selectMatch(i));
+      }
+      cont.appendChild(d);
+    });
+    if(!pendingCard) showMessage('');
+  }
+
+ function playCard(idx) {
+  if (pendingCard) return;
+
+  // 1) Remove your chosen card
+  const card = playerHand.splice(idx,1)[0];
+
+  // 2) Match against the table
+  const matches = tableCards
+    .map((c,i)=> c.month===card.month ? i : -1)
+    .filter(i=>i>=0);
+
+  if (matches.length > 0) {
+    // —— You capture immediately
+    playerCaptures.push(card, ...tableCards.splice(matches[0],1));
+    // (Optional: handle multiple‐match choice if needed)
+
+    // —— THEN you draw
+    drawAndResolve();
+  } else {
+    // —— No match: discard to table
+    tableCards.push(card);
+
+    // —— THEN you draw
+    drawAndResolve();
+  }
+
+  // After drawAndResolve(), either checkYaku() or aiTurn() will run
+}
+
+function drawAndResolve() {
+  if (!deck.length) { aiTurn(); render(); return; }
+
+  const drawn = deck.shift();
+  console.log('Player drew:', drawn.month, drawn.name);
+
+  const dmatches = tableCards
+    .map((c,i)=> c.month===drawn.month ? i : -1)
+    .filter(i=>i>=0);
+
+  if (dmatches.length) {
+    // capture drawn + table match
+    playerCaptures.push(drawn, ...tableCards.splice(dmatches[0],1));
+    // now check for Yaku (might pop koi‑koi modal)
+    checkYaku();
+  } else {
+    // no match: add to table
+    tableCards.push(drawn);
+    // now AI’s turn
+    aiTurn();
+    render();
+  }
+}
+  document.getElementById('aiDiscardHelpBtn').addEventListener('click', () => {
+  // 1) build features exactly as for aiTurn discard
+  const feats = extractFeaturesDiscard(
+    playerHand,     // note: if showing for player, use playerHand
+    tableCards,
+    playerCaptures, // or aiCaptures if you want AI’s view
+    aiCaptures,     // opponent’s captures
+    remainCounts(),
+    totalPlayer - totalAI,
+    round
+  );
+  // 2) get softmax probabilities over each card
+  const probs = actionProbs(policyWeights.discard, feats);
+
+  // 3) populate the panel
+  const panel = document.getElementById('aiDiscardHelpPanel');
+  panel.innerHTML = '';
+  probs.forEach((p, i) => {
+    const card = playerHand[i];    
+    const row = document.createElement('div');
+    row.className = 'help-bar-container';
+    // label with card name and pct
+    const label = document.createElement('span');
+    label.className = 'help-card-label';
+    label.textContent = `${card.name}: ${Math.round(p * 100)}%`;
+    // bar
+    const bar = document.createElement('div');
+    bar.className = 'help-bar';
+    const fill = document.createElement('div');
+    fill.className = 'help-fill';
+    fill.style.width = `${p * 100}%`;
+    bar.appendChild(fill);
+
+    row.appendChild(label);
+    row.appendChild(bar);
+    panel.appendChild(row);
+  });
+  panel.style.display = 'block';
+});
+
+function koikoiProbs(w, f) {
+  // dot(w, f)
+  const score = dot(w, f);
+  // sigmoid to get pKoi
+  const pKoi = 1 / (1 + Math.exp(-score));
+  // pStop = 1 - pKoi
+  return [1 - pKoi, pKoi];
+}
+
+document.getElementById('aiHelpBtn').addEventListener('click', () => {
+  const f = extractFeaturesKoikoi(
+    aiCaptures, tableCards, aiHand, deck,
+    totalAI - totalPlayer, round,
+    playerHand, playerCaptures
+  );
+const [pStop, pKoi] = koikoiProbs(policyWeights.koikoi, f);
+const action = Math.random() < pKoi ? 1 : 0;
+
+  document.getElementById('helpStopPct').textContent = `${Math.round(pStop*100)}%`;
+  document.getElementById('helpKoiPct').textContent  = `${Math.round(pKoi*100)}%`;
+  document.getElementById('helpFillStop').style.width = `${pStop*100}%`;
+  document.getElementById('helpFillKoi').style.width  = `${pKoi*100}%`;
+
+  document.getElementById('aiHelpPanel').style.display = 'block';
+});
+  function selectMatch(idx){
+    playerCaptures.push(pendingCard, ...tableCards.splice(idx,1));
+    pendingCard=null; checkYaku();
+  }
+
+  function checkYaku(){
+    const yscore = Object.values(detectYaku(playerCaptures)).reduce((a,b)=>a+b,0);
+    if(yscore>lastYakuScore){
+      lastYakuScore=yscore; showModal();
+    } else { aiTurn(); render(); }
+  }
+
+  function aiTurn(){
+    // 1) Discard via policy
+    const feats = extractFeaturesDiscard(aiHand, tableCards, aiCaptures, playerCaptures, remainCounts(), totalAI-totalPlayer, round);
+    const aiIdx = chooseAction(policyWeights.discard, feats);
+    const card = aiHand.splice(aiIdx,1)[0];
+    // 2) Capture logic (same as player)
+    const matches = tableCards.map((t,i)=>t.month===card.month?i:-1).filter(x=>x>=0);
+    if(matches.length){
+      const m=matches[Math.floor(Math.random()*matches.length)];
+      aiCaptures.push(card, ...tableCards.splice(m,1));
+    } else {
+      tableCards.push(card);
+    }
+    // 3) Draw
+    if(deck.length){
+      const drawn = deck.splice(0,1)[0];
+      const m2 = tableCards.map((t,i)=>t.month===drawn.month?i:-1).filter(x=>x>=0);
+      if(m2.length){
+        const m = m2[Math.floor(Math.random()*m2.length)];
+        aiCaptures.push(drawn, ...tableCards.splice(m,1));
+      } else { tableCards.push(drawn); }
+    }
+
+if (didMakeYaku(aiCaptures) && !aiKoikoi) {
+  const f = extractFeaturesKoikoi(
+    aiCaptures, tableCards, aiHand, deck,
+    totalAI - totalPlayer, round,
+    playerHand, playerCaptures
+  );
+const [pStop, pKoi] = koikoiProbs(policyWeights.koikoi, f);
+
+  // sample action
+  const action = Math.random() < pKoi ? 1 : 0;
+  if (action === 0) {
+    endRound();
+  } else {
+    aiKoikoi = true;
+    hideModal();  // if you’re re‑using the modal for AI, optionally hide it
+  }
+}
+    render();
+  }
+
+  function endRound(){
+    const pS = Object.values(detectYaku(playerCaptures)).reduce((a,b)=>a+b,0);
+    const aS = Object.values(detectYaku(aiCaptures)).reduce((a,b)=>a+b,0);
+    totalPlayer+=pS; totalAI+=aS; round++;
+    if(round>12){
+      alert(`Game Over! You ${totalPlayer} – AI ${totalAI}`);
+      location.reload();
+    } else {
+      lastYakuScore=0; aiKoikoi=false;
+      initDeck(); deal();
+    }
+  }
+
+  document.getElementById('koiBtn').addEventListener('click',()=>{
+    // player Koi‑Koi
+    aiKoikoi=false; hideModal(); render();
+  });
+  document.getElementById('stopBtn').addEventListener('click',()=>{
+    hideModal(); endRound();
+  });
+  document.getElementById('restartBtn').addEventListener('click',()=>location.reload());
+  </script>
+</body>
+</html>
